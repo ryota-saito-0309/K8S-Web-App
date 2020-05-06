@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata: 
-  name: storage-volume
+  name: storage-volume-0
   namespace: default
   labels: 
     app: weblog
@@ -13,25 +13,47 @@ spec:
   accessModes: 
   - ReadWriteMany
   hostPath: 
-    path: "/data/storage"
+    path: "/data/pv0000"
     type: Directory
 
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: PersistentVolume
 metadata: 
-  name: storage-claim
+  name: storage-volume-1
   namespace: default
   labels: 
     app: weblog
     type: storage
 spec: 
   storageClassName: slow
+  capacity: 
+    storage: 1Gi
   accessModes: 
   - ReadWriteMany
-  resources: 
-    requests:
-      storage: 1Gi
+  hostPath: 
+    path: "/data/pv0001"
+    type: Directory
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata: 
+  name: storage-volume-2
+  namespace: default
+  labels: 
+    app: weblog
+    type: storage
+spec: 
+  storageClassName: slow
+  capacity: 
+    storage: 1Gi
+  accessModes: 
+  - ReadWriteMany
+  hostPath: 
+    path: "/data/pv0002"
+    type: Directory
+
 ---
 apiVersion: v1
 kind: Secret
@@ -48,49 +70,74 @@ data:
   keyfile: Q3Z3clBrMkRScUVmZnQ0d015QW9MWm84WnpOMEs2UFRxMy9ZaEVtN3NsaXRyNk5TU05iaVFaZjUwbFFBeUJTRkhDYUY1NXQyOTFxWFZIUWUrZElzYnlpUkZ2NzE3WWVNeDBtWjQwcWdqWGFxTzkxRjV2TGdONjNtOHJkMXpsN21UbVNvQlRraXFnWUM0dWpyTkxlOWZzQjhwemhsdm8xZjNrejFENmN3V0N5N3pDTXVVZ3JxV0FGZWFJVGgxeTlUbi90SU5NRlc1ZXAyUlg4OFYrRDhZaDlSUktTRllLczdHb1VsY1lJZldMMVdCM2syZndmVERtVTBtOWRkdDdjendjeElNbFdna0JHcWsrbGVxaVdlaCsyYzZQZ05PS3o4N2hWL0R6SWxoTFVibzlnTXBsNHZGUG9mbVFPYjdxMlRZOVgveDIvU0MweHVxOXRkcWd3TC9vQTM2Tk1qRDFsMGo1SGo5ZW9pSkY1bDVGSDBRekZKUzR0dm01cXRXVHNmUmRxcjdNbEJ5YzVvbktYV25CMHVSNGJuZnZVdUNCMWJodlQ1NDdoVjdHeXo3N3p0SVBMSzFzeG9BZUJ6WVNnbnh5MFdIUHU2Q2ZtaTJsaXc4dkplM0RoQ0V6Mm5xOHYvM2tVZjJpWWpjL2NLd2hJN2prNW85Q2k5bHR5T2xvc3VHRzJqWXgvcStrZVNSRjFRbXRvaFR4cnM0aGJkSTlVWmttMUlPbTZ1MWd3dUxWMnphYjhuUGZUcFpkb1J2ek9QY041TjE5TXJwVERUenZZclFUbU45S2tJUHRiK1dLQlMvK29CYU9uWnVqNWxpOHUrZE5iQU5CbWwwbHpvSzc4WUJCOVhGRWVYRy9SS3l3dkNhWUM4d0toZXJUeWhjTlRISW9wcVNaYm02V1NCNTgrYkloV3N4QVNBZ1JuS283S0NQY2hwLys1bmFEZ1dxZkJqUGJ0dzM1T09pZGN3ZG52cE1ZZEllTEV0NGg2L0JJbGxOMlNiQkRRK2k3VlhsRUlDMWwyT3JqTkx2UmtDL2N5L2NHYm1iYnJIYXpCYVlzT1l1K1ZGVlk2S3ppMWh6eEd4Z0VXN2F2SDdHREVjalE1eE9ydlJTWlZDbzRpWTdxNys3SG00am9FWFpLbVlBcDJXSll6bTBUb1BNcmZsS0N1TW0vUHh4OHpPMUxXM2Q2T29TMm5LclQ3WVlOQVMrZGdXYXFmWmtXYUk2dkdhT0dhQnQ3WHg0Z3MwTkljeVRRK3h6aDZ6eVpmLzRsL2JqS2JWdEdFcWtiRTk0MSs0Q1d0bU1QMXAwSThwRERFcWhEcUZPMjJvTnFHanVhMG5MMGNRWVBQbW1ZSmtheHlEOFB6Mwo=
 
 ---
-apiVersion: v1
-kind: Pod
-metadata: 
-  name: mongodb
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
   namespace: default
   labels: 
     app: weblog
     type: database
 spec:
-  containers: 
-  - name: mongodb
-    image: weblog-db:v1.0.0
-    imagePullPolicy: Never
-    args: 
-    - "mongod"
-    - "--auth"
-    - "--bind_ip_all"
-    env: 
-    - name: "MONGO_INITDB_ROOT_USERNAME"
-      valueFrom: 
-        secretKeyRef: 
-          name: mongo-secret
-          key: root_username
-    - name: "MONGO_INITDB_ROOT_PASSWORD"
-      valueFrom: 
-        secretKeyRef: 
-          name: mongo-secret
-          key: root_password
-    - name: "MONGO_INITDB_DATABASE"
-      value: "admin"
-    volumeMounts:
-    - mountPath: "/data/db"
+  selector:
+    matchLabels:
+      app: weblog
+      type: database
+  serviceName: db-svc
+  replicas: 3
+  template:
+    metadata: 
+      name: mongodb
+      namespace: default
+      labels: 
+        app: weblog
+        type: database
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers: 
+      - name: mongodb
+        image: weblog-db:v1.0.0
+        imagePullPolicy: Never
+        args: 
+        - "mongod"
+        - "--auth"
+        - "--clusterAuthMode=keyFile"
+        - "--keyFile=/home/mongodb/keyfile"
+        - "--replSet=rs0"
+        - "--bind_ip_all"
+        env: 
+        - name: "MONGO_INITDB_ROOT_USERNAME"
+          valueFrom: 
+            secretKeyRef: 
+              name: mongo-secret
+              key: root_username
+        - name: "MONGO_INITDB_ROOT_PASSWORD"
+          valueFrom: 
+            secretKeyRef: 
+              name: mongo-secret
+              key: root_password
+        - name: "MONGO_INITDB_DATABASE"
+          value: "admin"
+        volumeMounts:
+        - mountPath: "/data/db"
+          name: storage
+        - mountPath: /home/mongodb
+          name: secret
+      volumes: 
+      - name: secret
+        secret:
+          secretName: mongo-secret
+          items:
+          - key: keyfile
+            path: keyfile
+            mode: 0700
+  volumeClaimTemplates:
+  - metadata:
       name: storage
-    - mountPath: /home/mongodb
-      name: secret
-  volumes: 
-  - name: storage
-    persistentVolumeClaim:
-      claimName: storage-claim
-  - name: secret
-    secret:
-      secretName: mongo-secret
-      items:
-      - key: keyfile
-        path: keyfile
-        mode: 0700
+    spec:
+      storageClassName: slow
+      accessModes: 
+      - ReadWriteMany
+      resources: 
+        requests:
+          storage: 1Gi
