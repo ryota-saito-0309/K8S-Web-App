@@ -1,56 +1,56 @@
 apiVersion: v1
 kind: PersistentVolume
-metadata: 
+metadata:
   name: storage-volume-0
   namespace: default
-  labels: 
+  labels:
     app: weblog
     type: storage
-spec: 
+spec:
   storageClassName: slow
-  capacity: 
+  capacity:
     storage: 1Gi
-  accessModes: 
+  accessModes:
   - ReadWriteMany
-  hostPath: 
+  hostPath:
     path: "/data/pv0000"
     type: Directory
 
 ---
 apiVersion: v1
 kind: PersistentVolume
-metadata: 
+metadata:
   name: storage-volume-1
   namespace: default
-  labels: 
+  labels:
     app: weblog
     type: storage
-spec: 
+spec:
   storageClassName: slow
-  capacity: 
+  capacity:
     storage: 1Gi
-  accessModes: 
+  accessModes:
   - ReadWriteMany
-  hostPath: 
+  hostPath:
     path: "/data/pv0001"
     type: Directory
 
 ---
 apiVersion: v1
 kind: PersistentVolume
-metadata: 
+metadata:
   name: storage-volume-2
   namespace: default
-  labels: 
+  labels:
     app: weblog
     type: storage
-spec: 
+spec:
   storageClassName: slow
-  capacity: 
+  capacity:
     storage: 1Gi
-  accessModes: 
+  accessModes:
   - ReadWriteMany
-  hostPath: 
+  hostPath:
     path: "/data/pv0002"
     type: Directory
 
@@ -60,7 +60,7 @@ kind: Secret
 metadata:
   name: mongo-secret
   namespace: default
-  labels: 
+  labels:
     app: weblog
     type: database
 type: Opaque
@@ -78,7 +78,7 @@ metadata:
   labels:
     app: weblog
     type: database
-spec: 
+spec:
   ports:
   - port: 27017
     targetPort: 27017
@@ -93,7 +93,7 @@ kind: StatefulSet
 metadata:
   name: mongo
   namespace: default
-  labels: 
+  labels:
     app: weblog
     type: database
 spec:
@@ -104,44 +104,44 @@ spec:
   serviceName: db-svc
   replicas: 3
   template:
-    metadata: 
+    metadata:
       name: mongodb
       namespace: default
-      labels: 
+      labels:
         app: weblog
         type: database
     spec:
       terminationGracePeriodSeconds: 10
-      containers: 
+      containers:
       - name: mongodb
         image: weblog-db:v1.0.0
         imagePullPolicy: Never
-        args: 
+        args:
         - "mongod"
         - "--auth"
         - "--clusterAuthMode=keyFile"
         - "--keyFile=/home/mongodb/keyfile"
         - "--replSet=rs0"
         - "--bind_ip_all"
-        env: 
+        env:
         - name: "MONGO_INITDB_ROOT_USERNAME"
-          valueFrom: 
-            secretKeyRef: 
+          valueFrom:
+            secretKeyRef:
               name: mongo-secret
               key: root_username
         - name: "MONGO_INITDB_ROOT_PASSWORD"
-          valueFrom: 
-            secretKeyRef: 
+          valueFrom:
+            secretKeyRef:
               name: mongo-secret
               key: root_password
         - name: "MONGO_INITDB_DATABASE"
           value: "admin"
         volumeMounts:
-        - mountPath: "/data/db"
+        - mountPath: /data/db
           name: storage
         - mountPath: /home/mongodb
           name: secret
-      volumes: 
+      volumes:
       - name: secret
         secret:
           secretName: mongo-secret
@@ -154,8 +154,8 @@ spec:
       name: storage
     spec:
       storageClassName: slow
-      accessModes: 
+      accessModes:
       - ReadWriteMany
-      resources: 
+      resources:
         requests:
           storage: 1Gi
